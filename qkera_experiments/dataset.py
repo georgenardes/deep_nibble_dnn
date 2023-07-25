@@ -1,5 +1,6 @@
+
 import tensorflow as tf
-import cupy as cp
+
 
 def load_mnist(flatten=False):
         
@@ -24,25 +25,6 @@ def load_mnist(flatten=False):
 
     return x_train, y_train, x_test, y_test
 
-
-def load_fashion_mnist():
-        
-    # Load MNIST dataset
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
-    assert x_train.shape == (60000, 28, 28)
-    assert x_test.shape == (10000, 28, 28)
-    assert y_train.shape == (60000,)
-    assert y_test.shape == (10000,)
-
-    # normalize
-    x_train = x_train.reshape(60000, -1).astype(cp.float32) / 255.
-    x_test = x_test.reshape(10000, -1).astype(cp.float32) / 255.
-
-    # to one-hot
-    y_train = cp.array(tf.one_hot(y_train, 10, 1., 0.))
-    y_test = cp.array(tf.one_hot(y_test, 10, 1., 0.))
-
-    return x_train, x_test, y_train, y_test
 
 
 def load_cifar10(flatten=False):
