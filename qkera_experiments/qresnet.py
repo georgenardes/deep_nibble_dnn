@@ -78,7 +78,9 @@ def resnet_cifar(x, blocks_per_layer, num_classes=100):
     return x
 
 
-def resnet18(x, **kwargs):    
+def resnet20(x, **kwargs):    
     return resnet_cifar(x, [3, 3, 3], **kwargs)
         
+def resnet32(x, **kwargs):    
+    return resnet_cifar(x, [5, 5, 5], **kwargs)
 
