@@ -16,12 +16,12 @@ def qbasic_block(x, planes, stride=1, downsample=None, name=None):
     identity = x
 
     out = qconv3x3(x, planes, stride=stride, name=f'{name}.conv1')
-    out = layers.BatchNormalization(name=f'{name}.bn1')(out)
+    out = QBatchNormalization(name=f'{name}.bn1')(out)
     out = QActivation(quantized_relu_po2(4,1,use_stochastic_rounding=True), 
                       name=f'{name}.relu1')(out)
 
     out = qconv3x3(out, planes, name=f'{name}.conv2')
-    out = layers.BatchNormalization(name=f'{name}.bn2')(out)
+    out = QBatchNormalization(name=f'{name}.bn2')(out)
 
     if downsample is not None:
         for layer in downsample:
@@ -43,7 +43,7 @@ def make_qlayer(x, planes, blocks, stride=1, name=None):
             QConv2D(filters=planes, kernel_size=1, strides=stride, use_bias=False, 
                     kernel_quantizer=quantized_po2(4,1,True) , 
                     name=f'{name}.0.downsample.0'),
-            layers.BatchNormalization(name=f'{name}.0.downsample.1'),
+             QBatchNormalization(name=f'{name}.0.downsample.1'),
         ]
 
     x = qbasic_block(x, planes, stride, downsample, name=f'{name}.0')
@@ -54,11 +54,11 @@ def make_qlayer(x, planes, blocks, stride=1, name=None):
 
 
 
-def resnet_cifar(x, blocks_per_layer, num_classes=100):
+def qresnet_cifar(x, blocks_per_layer, num_classes=100):
     x = layers.ZeroPadding2D(padding=1, name='conv1_pad')(x)
 
-    x = layers.Conv2D(filters=16, kernel_size=3, strides=1, use_bias=False, name='qconv1')(x)    
-    x = layers.BatchNormalization(name='bn1')(x) ## FP32            
+    x = QConv2D(filters=16, kernel_size=3, strides=1, use_bias=False, kernel_quantizer=quantized_po2(4,1, use_stochastic_rounding=True), name='qconv1')(x)    
+    x = QBatchNormalization(name='bn1')(x) 
     x = QActivation(quantized_relu_po2(4, 1, 
                                        use_stochastic_rounding=True), name='qrelu1')(x) 
     
@@ -73,14 +73,15 @@ def resnet_cifar(x, blocks_per_layer, num_classes=100):
     
     x = layers.GlobalAveragePooling2D(name='avgpool')(x)
     
-    x = layers.Dense(units=num_classes, kernel_initializer="glorot_normal", name='fc')(x)
+    x = QDense(units=num_classes, kernel_quantizer=quantized_po2(4,1,use_stochastic_rounding=True),
+               bias_quantizer=quantized_po2(4, 1, use_stochastic_rounding=True), name='fc')(x)
 
     return x
 
 
 def resnet20(x, **kwargs):    
-    return resnet_cifar(x, [3, 3, 3], **kwargs)
+    return qresnet_cifar(x, [3, 3, 3], **kwargs)
         
 def resnet32(x, **kwargs):    
-    return resnet_cifar(x, [5, 5, 5], **kwargs)
+    return qresnet_cifar(x, [5, 5, 5], **kwargs)
 
