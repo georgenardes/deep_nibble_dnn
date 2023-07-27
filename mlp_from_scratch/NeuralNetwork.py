@@ -224,9 +224,15 @@ class QNeuralNetworkWithScale:
         self.layers.append(QReLU())
         self.layers.append(QFullyConnectedLayerWithScale(256, 256))
         self.layers.append(QReLU())
-        self.layers.append(QFullyConnectedLayerWithScale(256, output_size))
+        self.layers.append(QFullyConnectedLayerWithScale(256, output_size, is_output_layer=True))
 
         self.softmax = Softmax()
+
+
+        # accuracy history
+        self.acc_hist = []
+        # loss history
+        self.loss_hist = []
 
 
     def forward(self, inputs):
@@ -285,11 +291,6 @@ class QNeuralNetworkWithScale:
     def train(self, inputs, targets, learning_rate, num_epochs, batch_size=None, x_val = None, y_val = None):
         # zerout num of iteration        
         self.iteration = 0
-        # accuracy history
-        self.acc_hist = []
-        # loss history
-        self.loss_hist = []
-
 
         for epoch in range(num_epochs):
             loss = 0.0
@@ -337,17 +338,17 @@ class QNeuralNetworkWithScale:
             outputs = []
             for input in inputs:
                 output = self.forward(input)
-                predicted_class = cp.argmax(output)
+                predicted_class = tf.argmax(output)
                 outputs.append(predicted_class)        
-            return cp.array(outputs)
+            return tf.stack(outputs)
         else:            
             outputs = []
             for batch_inputs in self.get_batches(inputs, batch_size=batch_size):        
                 output = self.forward(batch_inputs)
-                predicted_class = cp.argmax(output, axis=-1)
+                predicted_class = tf.argmax(output, axis=-1)
                 outputs.append(predicted_class)
-            outputs = cp.concatenate(outputs, axis=0)
-            return cp.array(outputs)
+            outputs = tf.concat(outputs, axis=0)
+            return outputs
                 
 
     def cross_entropy_loss_with_logits(self, output, targets):

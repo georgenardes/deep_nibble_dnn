@@ -131,7 +131,7 @@ class QFullyConnectedLayerWithScale:
     """ This is a FC layer with scale and SX4 Quantization"""
     
 
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, is_output_layer=False):
         
         self.input_size = input_size
         self.output_size = output_size
@@ -164,6 +164,7 @@ class QFullyConnectedLayerWithScale:
         #################################################
         
         self.update_scale = True
+        self.is_output_layer = is_output_layer
 
     
     
@@ -189,7 +190,10 @@ class QFullyConnectedLayerWithScale:
         self.output = self.output / qos
 
         # quantiza saída
-        self.output = quantize(self.output, stochastic_round=True, stochastic_zero=True)
+        if self.is_output_layer:
+            self.output = quantize(self.output, stochastic_round=True, stochastic_zero=False)
+        else:
+            self.output = quantize(self.output, stochastic_round=True, stochastic_zero=True)
         #################################################
 
         return self.output

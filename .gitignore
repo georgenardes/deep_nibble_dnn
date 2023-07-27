@@ -161,3 +161,4 @@ cython_debug/
 
 # qmodels
 qkera_experiments/qmodels/
+qmodels/
