@@ -162,8 +162,7 @@ class QFullyConnectedLayerWithScale:
         self.grad_bias_scale = tf.constant(1, tf.float32)
         self.gbs_hist = []
         #################################################
-        
-        self.update_scale = True
+                
         self.is_output_layer = is_output_layer
 
     
