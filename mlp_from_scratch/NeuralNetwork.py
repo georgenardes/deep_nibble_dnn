@@ -3,7 +3,7 @@ from mlp_from_scratch.FullyConnectedLayer import FullyConnectedLayer, FullyConne
 from mlp_from_scratch.ConvLayer import ConvLayer, CustomMaxPool, CustomFlatten, QConvLayer
 from mlp_from_scratch.Activations import *
 from mlp_from_scratch.quantizer import quantize, quantize_po2
-
+import os
 
 
 class NeuralNetwork:
@@ -217,7 +217,7 @@ class QNeuralNetworkWithScale:
         self.output_size = output_size
 
         # loss function grad output scale
-        self.grad_output_scale = 1
+        self.grad_output_scale = tf.constant(1., tf.float32)
 
         self.layers = []
         self.layers.append(QFullyConnectedLayerWithScale(input_size, 256))
@@ -390,6 +390,9 @@ class QNeuralNetworkWithScale:
 
     def save_weights(self, path):
         """ recieves a path where all model variable will be saved """
+
+        if not os.path.exists(path=path):
+            os.makedirs(path)
 
         # para cada camada
         for i, l in enumerate(self.layers):

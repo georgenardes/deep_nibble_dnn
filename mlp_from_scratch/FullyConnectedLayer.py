@@ -147,7 +147,7 @@ class QFullyConnectedLayerWithScale:
         # escala inicial dos pesos
         self.ws_hist = []
         self.bs_hist = []
-        self.input_scale = None
+        self.input_scale = tf.constant(1, tf.float32)
         self.output_scale = tf.constant(1, tf.float32)
         self.os_hist = []
         
