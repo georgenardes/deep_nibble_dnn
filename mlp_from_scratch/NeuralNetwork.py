@@ -3,7 +3,7 @@ from mlp_from_scratch.FullyConnectedLayer import FullyConnectedLayer, FullyConne
 from mlp_from_scratch.ConvLayer import ConvLayer, CustomMaxPool, CustomFlatten, QConvLayer
 from mlp_from_scratch.Activations import *
 from mlp_from_scratch.quantizer import quantize, quantize_po2
-
+import os
 
 
 class NeuralNetwork:
@@ -217,16 +217,22 @@ class QNeuralNetworkWithScale:
         self.output_size = output_size
 
         # loss function grad output scale
-        self.grad_output_scale = 1
+        self.grad_output_scale = tf.constant(1., tf.float32)
 
         self.layers = []
         self.layers.append(QFullyConnectedLayerWithScale(input_size, 256))
         self.layers.append(QReLU())
         self.layers.append(QFullyConnectedLayerWithScale(256, 256))
         self.layers.append(QReLU())
-        self.layers.append(QFullyConnectedLayerWithScale(256, output_size))
+        self.layers.append(QFullyConnectedLayerWithScale(256, output_size, is_output_layer=True))
 
         self.softmax = Softmax()
+
+
+        # accuracy history
+        self.acc_hist = []
+        # loss history
+        self.loss_hist = []
 
 
     def forward(self, inputs):
@@ -234,7 +240,7 @@ class QNeuralNetworkWithScale:
         cp_inputs = inputs
         xs = tf.reduce_max(tf.abs(cp_inputs))    
         
-        # escala entrada e atribui a variavel output que entrará no laço
+        # escala entrada e atribui a variavel output que entrará no laço ### TODO: testar fazer média móvel de entradas, mas deve piorar ACC
         output = cp_inputs / quantize_po2(xs)
 
         # quantiza a entrada...
@@ -285,11 +291,6 @@ class QNeuralNetworkWithScale:
     def train(self, inputs, targets, learning_rate, num_epochs, batch_size=None, x_val = None, y_val = None):
         # zerout num of iteration        
         self.iteration = 0
-        # accuracy history
-        self.acc_hist = []
-        # loss history
-        self.loss_hist = []
-
 
         for epoch in range(num_epochs):
             loss = 0.0
@@ -337,17 +338,17 @@ class QNeuralNetworkWithScale:
             outputs = []
             for input in inputs:
                 output = self.forward(input)
-                predicted_class = cp.argmax(output)
+                predicted_class = tf.argmax(output)
                 outputs.append(predicted_class)        
-            return cp.array(outputs)
+            return tf.stack(outputs)
         else:            
             outputs = []
             for batch_inputs in self.get_batches(inputs, batch_size=batch_size):        
                 output = self.forward(batch_inputs)
-                predicted_class = cp.argmax(output, axis=-1)
+                predicted_class = tf.argmax(output, axis=-1)
                 outputs.append(predicted_class)
-            outputs = cp.concatenate(outputs, axis=0)
-            return cp.array(outputs)
+            outputs = tf.concat(outputs, axis=0)
+            return outputs
                 
 
     def cross_entropy_loss_with_logits(self, output, targets):
@@ -385,6 +386,62 @@ class QNeuralNetworkWithScale:
                     yield inputs[start:end], targets[start:end]
                 if len(inputs) % batch_size != 0:
                     yield inputs[num_batches * batch_size:], targets[num_batches * batch_size:]                
+
+
+    def save_weights(self, path):
+        """ recieves a path where all model variable will be saved """
+
+        if not os.path.exists(path=path):
+            os.makedirs(path)
+
+        # para cada camada
+        for i, l in enumerate(self.layers):
+            if isinstance(l, QFullyConnectedLayerWithScale):
+                # salva pesos
+                np.save(f"{path}/layer.{i}.weights", l.qw.numpy())
+
+                # salva bias
+                np.save(f"{path}/layer.{i}.bias", l.qb.numpy())
+
+                # salva escalas
+                np.save(f"{path}/layer.{i}.weights_scale", l.weights_scale.numpy())
+                np.save(f"{path}/layer.{i}.input_scale", l.input_scale.numpy())
+                np.save(f"{path}/layer.{i}.output_scale", l.output_scale.numpy())
+                np.save(f"{path}/layer.{i}.grad_weights_scale", l.grad_weights_scale.numpy())
+                np.save(f"{path}/layer.{i}.grad_bias_scale", l.grad_bias_scale.numpy())
+                np.save(f"{path}/layer.{i}.grad_output_scale", l.grad_output_scale.numpy())
+
+        
+        # para a rede
+        np.save(f"{path}/net.grad_output_scale",  self.grad_output_scale.numpy())
+                       
+
+
+    def load_weights(self, path):
+        """ recieves a path from where all model variable will be loaded """
+
+        # para cada camada
+        for i, l in enumerate(self.layers):
+            if isinstance(l, QFullyConnectedLayerWithScale):
+                # salva pesos
+                l.qw = tf.constant(np.load(f"{path}/layer.{i}.weights.npy"))
+    
+                # salva bias
+                l.qb = tf.constant(np.load(f"{path}/layer.{i}.bias.npy"))
+
+                # salva escalas
+                l.weights_scale = tf.constant(np.load(f"{path}/layer.{i}.weights_scale.npy"))
+                l.input_scale = tf.constant(np.load(f"{path}/layer.{i}.input_scale.npy"))
+                l.output_scale = tf.constant(np.load(f"{path}/layer.{i}.output_scale.npy"))
+                l.grad_weights_scale = tf.constant(np.load(f"{path}/layer.{i}.grad_weights_scale.npy"))
+                l.grad_bias_scale = tf.constant(np.load(f"{path}/layer.{i}.grad_bias_scale.npy"))
+                l.grad_output_scale = tf.constant(np.load(f"{path}/layer.{i}.grad_output_scale.npy"))
+
+        
+        # para a rede
+        self.grad_output_scale = tf.constant(np.load(f"{path}/net.grad_output_scale.npy"))
+
+
 
 
 
