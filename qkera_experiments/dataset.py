@@ -60,8 +60,8 @@ def load_cifar100():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar100.load_data(label_mode='fine')
 
     # Normalizando os dados (valores de pixel entre 0 e 1)
-    x_train = x_train.astype('float32') 
-    x_test = x_test.astype('float32') 
+    x_train = x_train.astype('float32') / 255.
+    x_test = x_test.astype('float32') / 255.
 
     # to one-hot
     y_train = tf.one_hot(y_train[:, 0], 100, 1., 0.)

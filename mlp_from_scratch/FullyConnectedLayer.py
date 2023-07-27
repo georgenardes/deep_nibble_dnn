@@ -189,8 +189,8 @@ class QFullyConnectedLayerWithScale:
         self.output = self.output / qos
 
         # quantiza saída
-        if self.is_output_layer:
-            self.output = quantize(self.output, stochastic_round=True, stochastic_zero=False)
+        if self.is_output_layer: # FP32 as output
+            self.output = self.output # quantize(self.output, stochastic_round=True, stochastic_zero=False)
         else:
             self.output = quantize(self.output, stochastic_round=True, stochastic_zero=True)
         #################################################
