@@ -89,7 +89,7 @@ def QVGG_16(x, num_outputs=10, **kwargs):
     return x
 
 
-def VGG_16(x, num_outputs=10, **kwargs):
+def VGG_16(x, num_classes=10, **kwargs):
     # Block 1
     x = tf.keras.layers.Conv2D(64, (3, 3), padding='same')(x)
     x = tf.keras.layers.ReLU()(x)
@@ -114,11 +114,14 @@ def VGG_16(x, num_outputs=10, **kwargs):
     x = tf.keras.layers.MaxPooling2D((2, 2), strides=(2, 2))(x)
     
     # # Block 4
-    # x = tf.keras.layers.Conv2D(512, (3, 3), activation='relu', padding='same')(x)
-    # x = tf.keras.layers.Conv2D(512, (3, 3), activation='relu', padding='same')(x)
-    # x = tf.keras.layers.Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+    # x = tf.keras.layers.Conv2D(512, (3, 3), padding='same')(x)
+    # x = tf.keras.layers.ReLU()(x)
+    # x = tf.keras.layers.Conv2D(512, (3, 3), padding='same')(x)
+    # x = tf.keras.layers.ReLU()(x)
+    # x = tf.keras.layers.Conv2D(512, (3, 3), padding='same')(x)
+    # x = tf.keras.layers.ReLU()(x)
     # x = tf.keras.layers.MaxPooling2D((2, 2), strides=(2, 2))(x)
-    # 
+
     # # Block 5
     # x = tf.keras.layers.Conv2D(512, (3, 3), activation='relu', padding='same')(x)
     # x = tf.keras.layers.Conv2D(512, (3, 3), activation='relu', padding='same')(x)
@@ -127,11 +130,12 @@ def VGG_16(x, num_outputs=10, **kwargs):
     
     # Classification head
     x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dense(256)(x)
+    x = tf.keras.layers.Dropout(0.3)(x)
+    x = tf.keras.layers.Dense(512)(x)
     x = tf.keras.layers.ReLU()(x)
-    x = tf.keras.layers.Dense(256)(x)
+    x = tf.keras.layers.Dense(512)(x)
     x = tf.keras.layers.ReLU()(x)
-    x = tf.keras.layers.Dense(num_outputs)(x)  # Assuming 1000 classes for ImageNet
+    x = tf.keras.layers.Dense(num_classes)(x)  # Assuming 1000 classes for ImageNet
 
     return x
 
