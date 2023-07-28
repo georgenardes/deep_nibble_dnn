@@ -1,9 +1,12 @@
 import numpy as np
-from mlp_from_scratch.FullyConnectedLayer import FullyConnectedLayer, FullyConnectedLayerWithScale, QFullyConnectedLayerWithScale
-from mlp_from_scratch.ConvLayer import ConvLayer, CustomMaxPool, CustomFlatten, QConvLayer
-from mlp_from_scratch.Activations import *
-from mlp_from_scratch.quantizer import quantize, quantize_po2
+from FullyConnectedLayer import FullyConnectedLayer, FullyConnectedLayerWithScale, QFullyConnectedLayerWithScale
+from ConvLayer import ConvLayer, CustomMaxPool, CustomFlatten, QConvLayer
+from Activations import *
+from quantizer import quantize, quantize_po2
 import os
+from tensorflow import keras
+from keras import layers
+
 
 
 class NeuralNetwork:
@@ -228,6 +231,10 @@ class QNeuralNetworkWithScale:
 
         self.softmax = Softmax()
 
+        for l in self.layers:
+            if isinstance(l, QFullyConnectedLayerWithScale):
+                print(l.input_size, l.output_size)
+
 
         # accuracy history
         self.acc_hist = []
@@ -443,6 +450,62 @@ class QNeuralNetworkWithScale:
 
 
 
+    def load_layers_from_model(self, mlp):
+        """ recieves a model from where all model variable will be loaded 
+            also, quantize the weights
+        """
+
+        # limpa array de camadas
+        self.layers.clear()
+
+        # find last layer
+        last_fc_layer_idx = 0
+        for i, l in enumerate(mlp.layers):
+            if isinstance(l, keras.layers.Dense): 
+                last_fc_layer_idx = i
+
+
+        # para cada camada
+        for i, l in enumerate(mlp.layers):
+            if isinstance(l, keras.layers.Dense):        
+                print("instantiating weights from ", l.name)
+                qfc = QFullyConnectedLayerWithScale(l.weights[0].shape[0],l.weights[0].shape[1])
+                
+
+                # pega os pesos em fp32
+                fpw = l.weights[0].numpy()        
+                fpb  = np.reshape(l.weights[1].numpy(), (1, -1))
+                
+                # get scale
+                w_scale = np.max(np.abs(fpw))
+                
+                # do scaling
+                fpw_scaled = fpw / w_scale
+                fpb_scaled = fpb / w_scale
+                
+                # quantiza pesos escalados
+                qw = quantize(fpw_scaled, True, False)
+                    
+                # atribui o peso quantizado e escala
+                qfc.qw = qw
+                qfc.weights_scale = w_scale
+                
+                # quantiza e atribui bias escalados
+                qb = quantize(fpb_scaled, True, False)
+                qfc.qb = qb
+
+                if last_fc_layer_idx == i:
+                    qfc.is_output_layer = True
+
+                # salva layer
+                self.layers.append(qfc)
+
+
+            if isinstance(l, keras.layers.ReLU):          
+                print("instantiating relu")      
+                self.layers.append(QReLU())
+
+        print("loaded layers", self.layers)
 
 
 class LeNet:

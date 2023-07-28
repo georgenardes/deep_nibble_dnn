@@ -1,5 +1,5 @@
 import numpy as np
-from mlp_from_scratch.quantizer import quantize, stochastic_rounding, quantize_po2
+from quantizer import quantize, stochastic_rounding, quantize_po2
 import tensorflow as tf
 
 
@@ -164,7 +164,6 @@ class QFullyConnectedLayerWithScale:
         #################################################
                 
         self.is_output_layer = is_output_layer
-
     
     
     def qforward(self, inputs, xs):

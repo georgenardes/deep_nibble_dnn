@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from mlp_from_scratch.quantizer import quantize, quantize_po2
+from quantizer import quantize, quantize_po2
 
 class ConvLayer():
     def __init__(self, nfilters, kernel_size, input_channels, strides=[1,1,1,1], padding='SAME'):        

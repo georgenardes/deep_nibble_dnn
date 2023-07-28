@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from mlp_from_scratch.quantizer import quantize
+from quantizer import quantize
 
 class ActivationLayer:
     def forward(self, inputs):
