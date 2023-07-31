@@ -643,8 +643,8 @@ class LeNet:
 
 class QLeNet:
     """ vanilla LeNet NN """
-    def __init__(self, input_shape, output_size):
-        self.batch_size = input_shape[0]
+    def __init__(self, input_shape, output_size, batch_size):
+        self.batch_size = batch_size
         self.input_shape = input_shape
         self.output_size = output_size
 
@@ -670,6 +670,92 @@ class QLeNet:
         # input image scale
         self.input_scale  = 1
         self.is_hist = []
+
+    def load_layers_from_model(self, lenet):
+        
+        # clear previously created layers
+        self.layers.clear()
+
+        # find last layer
+        last_fc_layer_idx = 0
+        for i, l in enumerate(lenet.layers):
+            if isinstance(l, keras.layers.Dense): 
+                last_fc_layer_idx = i
+
+
+        for i, l in enumerate(lenet.layers):
+            if isinstance(l, keras.layers.Conv2D):    
+                print("instanciating conv layer...", l.output_shape)
+                l.weights[0].shape[0],l.weights[0].shape[1]
+
+                w_shape = l.weights[0].shape
+                nfilters = w_shape[3]
+                kernel_size = w_shape[0]
+                input_channels = w_shape[2]
+                strides=[1,1,1,1] ### TODO: variable strides
+                padding= l.padding.upper()
+                
+                # create QCONVLAYER
+                qfc = QConvLayer(nfilters, kernel_size, input_channels, strides, padding)
+                
+                fpw = l.weights[0].numpy()        
+                fpb  = l.weights[1].numpy()
+                
+                w_scale = np.max(np.abs(fpw))
+                
+                fpw_scaled = fpw / w_scale
+                qw = quantize(fpw_scaled, True, False)
+                
+                # atribui o peso quantizado
+                qfc.qw = qw
+                qfc.weights_scale = w_scale                                                    
+                fpb_scaled = fpb / w_scale
+                qb = quantize(fpb_scaled, True, False)
+                qfc.qb = qb
+                
+                self.layers.append(qfc)
+
+            if isinstance(l, keras.layers.MaxPool2D):    
+                print("instanciating MaxPool2D...", l.output_shape)
+                dn_maxpool = CustomMaxPool(l.pool_size, l.strides, l.padding.upper())
+                self.layers.append(dn_maxpool)
+
+            if isinstance(l, keras.layers.Flatten):    
+                print("instanciating Flatten...", l.output_shape)
+                self.layers.append(CustomFlatten(l.input_shape[1:])) # without batch
+
+            if isinstance(l, keras.layers.Dense):        
+                print("instanciating Dense...", l.output_shape)
+
+                qfc = QFullyConnectedLayerWithScale(l.weights[0].shape[0],l.weights[0].shape[1])
+                
+                fpw = l.weights[0].numpy()        
+                fpb  = l.weights[1].numpy()
+                
+                w_scale = np.max(np.abs(fpw))
+                
+                fpw_scaled = fpw / w_scale
+                qw = quantize(fpw_scaled, True, False)
+                
+                # atribui o peso quantizado
+                qfc.qw = qw
+                qfc.weights_scale = w_scale
+                    
+                
+                fpb_scaled = fpb / w_scale
+                qb = quantize(fpb_scaled, True, False)
+                qfc.qb = qb
+
+                if i == last_fc_layer_idx:
+                    qfc.is_output_layer = True
+
+
+                self.layers.append(qfc)
+
+
+            if isinstance(l, keras.layers.ReLU):         
+                print("instanciating ReLU...", l.output_shape)       
+                self.layers.append(QReLU())
 
 
     
@@ -728,7 +814,8 @@ class QLeNet:
         # quantiza o gradiente
         grad_output = quantize(grad_output, True, False)
 
-        for layer in reversed(self.layers):
+        for i, layer in enumerate(reversed(self.layers)):
+            # print(f"processing back prop of layer {len(self.layers) -i}... {type(layer)} ...")
             if isinstance(layer, QConvLayer):
                 grad_output = layer.qbackward(grad_output, grad_output_scale, learning_rate)
                 grad_output_scale = layer.grad_output_scale

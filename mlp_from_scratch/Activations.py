@@ -30,7 +30,7 @@ class QReLU(ActivationLayer):
         out = quantize(out, stochastic_round=True, stochastic_zero=True)
         return out
 
-    def backward(self, grad_output, learning_rate):
+    def backward(self, grad_output, learning_rate):        
         return grad_output * tf.where(self.inputs > 0, 1., 0.) ### TODO: testar ZERO ESTOCÁSTICO AQUI....
 
 

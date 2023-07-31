@@ -91,4 +91,4 @@ def quantize_po2(x):
 
     qx = tf.pow(2., tf.math.ceil(tf.math.log(cx)/log2))
     
-    return x # bypass
+    return qx # bypass

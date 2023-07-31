@@ -3,6 +3,7 @@ from quantizer import quantize, stochastic_rounding, quantize_po2
 import tensorflow as tf
 
 
+
 class FullyConnectedLayer:
     """ this is a vanilla FC layer """
 
@@ -189,7 +190,7 @@ class QFullyConnectedLayerWithScale:
 
         # quantiza saída
         if self.is_output_layer: # FP32 as output
-            self.output = self.output # quantize(self.output, stochastic_round=True, stochastic_zero=False)
+            self.output = quantize(self.output, stochastic_round=True, stochastic_zero=True) #self.output # quantize(self.output, stochastic_round=True, stochastic_zero=False)
         else:
             self.output = quantize(self.output, stochastic_round=True, stochastic_zero=True)
         #################################################

@@ -204,11 +204,12 @@ class QConvLayer():
 
 
 class CustomMaxPool():
-    def __init__(self, ksize=2, stride=(2,2)):
+    def __init__(self, ksize=2, stride=(2,2), padding="VALID"):
         self.ksize = ksize
         self.stride = stride
+        self.padding = padding
         self.upsampler = tf.keras.layers.UpSampling2D(size=ksize)
-        self.maxpooler = tf.keras.layers.MaxPool2D(pool_size=ksize, strides=stride, padding='VALID')
+        self.maxpooler = tf.keras.layers.MaxPool2D(pool_size=ksize, strides=stride, padding=padding)
 
 
     def forward(self, inputs):
