@@ -47,8 +47,8 @@ def load_cifar10(flatten=False):
         x_test = tf.reshape(x_test, (10000, -1))
 
     # to one-hot
-    y_train = tf.cast(tf.one_hot(y_train, 10, 1., 0.), tf.float32)
-    y_test = tf.cast(tf.one_hot(y_test, 10, 1., 0.), tf.float32)
+    y_train = tf.cast(tf.one_hot(y_train[:,0], 10, 1., 0., axis=-1), tf.float32)
+    y_test = tf.cast(tf.one_hot(y_test[:,0], 10, 1., 0., axis=-1), tf.float32)
 
     return x_train, y_train, x_test, y_test
 
