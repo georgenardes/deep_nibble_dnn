@@ -295,3 +295,10 @@ class QFullyConnectedLayerWithScale:
         return grad_input
     
     
+    def reset_weights(self):
+        w = tf.constant(np.random.randn(self.input_size, self.output_size) * np.sqrt(2/self.input_size), tf.float32)
+        self.weights_scale = tf.reduce_max(tf.abs(w))
+        self.qw = quantize(w/self.weights_scale, True, True)
+        
+        b = tf.zeros((1, self.output_size))        
+        self.qb = quantize(b, True, False) # quantized bias

@@ -660,7 +660,7 @@ class QLeNet:
         self.layers.append(QReLU())
         self.layers.append(QFullyConnectedLayerWithScale(256, 256))
         self.layers.append(QReLU())
-        self.layers.append(QFullyConnectedLayerWithScale(256, output_size))
+        self.layers.append(QFullyConnectedLayerWithScale(256, output_size, is_output_layer=True))
 
         self.softmax = Softmax()
 
@@ -670,6 +670,9 @@ class QLeNet:
         # input image scale
         self.input_scale  = 1
         self.is_hist = []
+
+        self.freeze_conv = False
+
 
     def load_layers_from_model(self, lenet):
         
@@ -758,6 +761,11 @@ class QLeNet:
                 self.layers.append(QReLU())
 
 
+    def restart_fc_layers(self):
+        for l in self.layers:
+            if isinstance(l, QFullyConnectedLayerWithScale):
+                l.reset_weights()
+
     
     def forward(self, inputs):
         # descobre a escala do dado de entrada
@@ -816,7 +824,7 @@ class QLeNet:
 
         for i, layer in enumerate(reversed(self.layers)):
             # print(f"processing back prop of layer {len(self.layers) -i}... {type(layer)} ...")
-            if isinstance(layer, QConvLayer):
+            if isinstance(layer, QConvLayer) and not self.freeze_conv:                
                 grad_output = layer.qbackward(grad_output, grad_output_scale, learning_rate)
                 grad_output_scale = layer.grad_output_scale
             elif isinstance(layer, QFullyConnectedLayerWithScale):
