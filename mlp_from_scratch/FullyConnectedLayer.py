@@ -140,17 +140,11 @@ class QFullyConnectedLayerWithScale:
         w = tf.constant(np.random.randn(input_size, output_size) * np.sqrt(2/input_size), tf.float32)
         self.weights_scale = tf.reduce_max(tf.abs(w))
         self.qw = quantize(w/self.weights_scale, True, True)
-        self.mtw = tf.zeros_like(self.qw)
-        self.vtw = tf.zeros_like(self.qw)
-
+        
         b = tf.zeros((1, output_size))        
         self.qb = quantize(b, True, False) # quantized bias
-        self.mtb = tf.zeros_like(self.qb)
-        self.vtb = tf.zeros_like(self.qb)
-
-        self.beta1_pow = tf.constant(1, tf.float32)
-        self.beta2_pow = tf.constant(1, tf.float32)
-
+        
+        
         #################################################
         # escala inicial dos pesos
         self.ws_hist = []
@@ -255,39 +249,21 @@ class QFullyConnectedLayerWithScale:
         qgb = quantize(grad_biases, True)        
 
 
-        #################### ETAPA DE ATUALIZAÇÃO DOS PESOS #######################
-        beta1 = 0.9
-        beta2 = 0.999
-        eps = 1e-8
-        self.beta1_pow *= beta1
-        self.beta2_pow *= beta2
-
-        # momentum        
-        self.mtw = beta1 * self.mtw + (1-beta1) * (qgw * qgws)
-        mtw_hat = self.mtw / (1-self.beta1_pow)
-        self.mtb = beta1 * self.mtb + (1-beta1) * (qgb * qgbs)
-        mtb_hat = self.mtb / (1-self.beta1_pow)
-
-        # rmsprop
-        self.vtw = beta2 * self.vtw + (1 - beta2) * (tf.square(qgw * qgws))
-        vtw_hat = self.vtw / (1-self.beta2_pow)
-        self.vtb = beta2 * self.vtb + (1 - beta2) * (tf.square(qgb * qgbs))
-        vtb_hat = self.vtb / (1-self.beta2_pow)
-
+        #################### ETAPA DE ATUALIZAÇÃO DOS PESOS #######################                        
 
         # weight scaling
         self.qw = self.qw * qws
         # gradient scaling
-        # qgw = qgw * qgws        
+        qgw = qgw * qgws        
         # weight updating
-        self.qw = self.qw - learning_rate * mtw_hat / (tf.sqrt(vtw_hat) + eps) ########## >>>>>
+        self.qw = self.qw - learning_rate * qgw
         
         # bias scaling
         self.qb = self.qb * (qws * qxs) 
         # bias gradient scaling
-        # qgb = qgb * qgbs
+        qgb = qgb * qgbs
         # bias updating
-        self.qb = self.qb - learning_rate * mtb_hat / (tf.sqrt(vtb_hat) + eps) ########## >>>>>
+        self.qb = self.qb - learning_rate * qgb
         
         ############################################################################
         # ############ ETAPA DE CLIP, ESCALA E QUANTIZAÇÃO ################
