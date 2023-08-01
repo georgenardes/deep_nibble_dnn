@@ -468,7 +468,7 @@ class QNeuralNetworkWithScale:
         # para cada camada
         for i, l in enumerate(mlp.layers):
             if isinstance(l, keras.layers.Dense):        
-                print("instantiating weights from ", l.name)
+                # print("instantiating weights from ", l.name)
                 qfc = QFullyConnectedLayerWithScale(l.weights[0].shape[0],l.weights[0].shape[1])
                 
 
@@ -502,10 +502,10 @@ class QNeuralNetworkWithScale:
 
 
             if isinstance(l, keras.layers.ReLU):          
-                print("instantiating relu")      
+                # print("instantiating relu")      
                 self.layers.append(QReLU())
 
-        print("loaded layers", self.layers)
+        # print("loaded layers", self.layers)
 
 
 class LeNet:
@@ -685,7 +685,7 @@ class QLeNet:
 
         for i, l in enumerate(lenet.layers):
             if isinstance(l, keras.layers.Conv2D):    
-                print("instanciating conv layer...", l.output_shape)
+                # print("instanciating conv layer...", l.output_shape)
                 l.weights[0].shape[0],l.weights[0].shape[1]
 
                 w_shape = l.weights[0].shape
@@ -716,16 +716,16 @@ class QLeNet:
                 self.layers.append(qfc)
 
             if isinstance(l, keras.layers.MaxPool2D):    
-                print("instanciating MaxPool2D...", l.output_shape)
+                # print("instanciating MaxPool2D...", l.output_shape)
                 dn_maxpool = CustomMaxPool(l.pool_size, l.strides, l.padding.upper())
                 self.layers.append(dn_maxpool)
 
             if isinstance(l, keras.layers.Flatten):    
-                print("instanciating Flatten...", l.output_shape)
+                # print("instanciating Flatten...", l.output_shape)
                 self.layers.append(CustomFlatten(l.input_shape[1:])) # without batch
 
             if isinstance(l, keras.layers.Dense):        
-                print("instanciating Dense...", l.output_shape)
+                # print("instanciating Dense...", l.output_shape)
 
                 qfc = QFullyConnectedLayerWithScale(l.weights[0].shape[0],l.weights[0].shape[1])
                 
@@ -754,7 +754,7 @@ class QLeNet:
 
 
             if isinstance(l, keras.layers.ReLU):         
-                print("instanciating ReLU...", l.output_shape)       
+                # print("instanciating ReLU...", l.output_shape)       
                 self.layers.append(QReLU())
 
 
