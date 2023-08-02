@@ -24,8 +24,12 @@ class ReLU(ActivationLayer):
     
 
 class QReLU(ActivationLayer):
+    def __init__(self, training=True):
+        self.training = training
+
     def forward(self, inputs):
-        self.inputs = inputs
+        if self.training:
+            self.inputs = inputs
         out = tf.maximum(0, inputs)
         out = quantize(out, stochastic_round=True, stochastic_zero=True)
         return out
