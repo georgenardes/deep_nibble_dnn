@@ -79,11 +79,13 @@ class QConvLayer():
         self.strides = strides
         self.padding = padding
 
+        self.training = True
 
         
     def qforward(self, inputs, xs):
         # salva entrada para backprop, (entrada já vem quantizada)
-        self.inputs = inputs
+        if self.training:
+            self.inputs = inputs
 
         # salva escala de entrada
         self.input_scale = xs 
@@ -213,7 +215,7 @@ class CustomMaxPool():
 
 
     def forward(self, inputs):
-        self.inputs = inputs
+        # self.inputs = inputs
         z = self.maxpooler(inputs)
         return z
 
