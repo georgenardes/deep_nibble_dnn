@@ -668,13 +668,13 @@ class QLeNet:
         self.grad_output_scale = 1
 
         # input image scale
-        self.input_scale  = 1
+        self.input_scale  = tf.constant(1., tf.float32)
         self.is_hist = []
 
         self.freeze_conv = False
 
 
-    def load_layers_from_model(self, lenet, conv_only=False):
+    def load_layers_from_model(self, lenet, from_layer=0):
         
         # clear previously created layers
         self.layers.clear()
@@ -686,10 +686,10 @@ class QLeNet:
                 last_fc_layer_idx = i
         
         # variavel para setar todas camadas apos flatten como training = True
-        training = False
+        training = True
 
-        for i, l in enumerate(lenet.layers):
-            if isinstance(l, keras.layers.Conv2D):    
+        for i, l in enumerate(lenet.layers[from_layer:]):            
+            if isinstance(l, keras.layers.Conv2D):                    
                 # print("instanciating conv layer...", l.output_shape)
                 l.weights[0].shape[0],l.weights[0].shape[1]
 
@@ -718,8 +718,9 @@ class QLeNet:
                 qb = quantize(fpb_scaled, True, False)
                 qfc.qb = qb
                 
-                # não sera treinado CONV
-                qfc.training = False
+                # não sera treinado CONV no CIFAR10
+                qfc.training = True
+                # training = False
 
                 self.layers.append(qfc)
 
@@ -765,10 +766,6 @@ class QLeNet:
             if isinstance(l, keras.layers.ReLU):         
                 # print("instanciating ReLU...", l.output_shape)       
                 self.layers.append(QReLU(training))
-
-        for l in self.layers:
-            if isinstance(l, QReLU): 
-                print(l.training)
 
 
     def restart_fc_layers(self):
@@ -890,7 +887,7 @@ class QLeNet:
 
 
 
-    def predict(self, inputs, batch_size=None):
+    def predict(self, inputs, batch_size=None, apply_argmax=True):
 
         if batch_size is None:
             outputs = []
@@ -903,8 +900,11 @@ class QLeNet:
             outputs = []
             for batch_inputs in self.get_batches(inputs, batch_size=batch_size):        
                 output = self.forward(batch_inputs)
-                predicted_class = tf.argmax(output, axis=-1)
-                outputs.append(predicted_class)
+                if apply_argmax:
+                    predicted_class = tf.argmax(output, axis=-1)
+                    outputs.append(predicted_class)
+                else:
+                    outputs.append(output)
             outputs = tf.concat(outputs, axis=0)
             return outputs
 
