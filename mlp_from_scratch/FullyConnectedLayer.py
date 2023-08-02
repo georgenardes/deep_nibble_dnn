@@ -179,7 +179,8 @@ class QFullyConnectedLayerWithScale:
 
         # faz matmul e desescala pesos e biases
         self.output = (tf.matmul(inputs, self.qw) + self.qb) * (qws * qxs)
-                
+        self.output = tf.clip_by_value(self.output, -512, 512)
+
         # descobre escala da saída com base em uma média
         self.output_scale = 0.99 * self.output_scale + 0.01 * tf.reduce_max(tf.abs(self.output))
         qos = quantize_po2(self.output_scale)
@@ -224,7 +225,7 @@ class QFullyConnectedLayerWithScale:
         grad_input = grad_input / qgis
 
         # quantiza o gradiente
-        grad_input = quantize(grad_input, stochastic_round=True, stochastic_zero=True)
+        grad_input = quantize(grad_input, stochastic_round=True, stochastic_zero=False)
                 
         # calcula o gradiente dos pesos. self.inputs é a entrada dessa camada na etapa de forward prop. Ela é quantizada.         
         grad_weights = tf.matmul(self.inputs, grad_output, transpose_a=True) * (qxs * qgos / qos) 
@@ -245,8 +246,8 @@ class QFullyConnectedLayerWithScale:
         grad_biases /= qgbs
         
         # quantize the grad
-        qgw = quantize(grad_weights, True)
-        qgb = quantize(grad_biases, True)        
+        qgw = quantize(grad_weights, True, stochastic_zero=False)
+        qgb = quantize(grad_biases, True, stochastic_zero=False)        
 
 
         #################### ETAPA DE ATUALIZAÇÃO DOS PESOS #######################                        
@@ -276,7 +277,7 @@ class QFullyConnectedLayerWithScale:
             
         # colocar quantização aqui e remover do forward
         # descobre a escala dos pesos com base no valor máximo
-        self.weights_scale = 0.99*self.weights_scale + 0.01*tf.reduce_max(tf.abs(w))
+        self.weights_scale = 0.9*self.weights_scale + 0.1*tf.reduce_max(tf.abs(w))
         qws = quantize_po2(self.weights_scale)
         self.ws_hist.append(qws)
                 

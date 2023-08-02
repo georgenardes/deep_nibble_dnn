@@ -133,7 +133,7 @@ class QConvLayer():
         self.grad_output_scale =  0.9 * self.grad_output_scale + 0.1 * tf.reduce_max(tf.abs(dx))
         qgis = quantize_po2(self.grad_output_scale)
         dx = dx / qgis
-        # quantiza o gradiente
+        # quantiza o gradiente (testado com SZ = True no CIFAR-10, para FineT, mas não melhorou)
         qdx = quantize(dx, stochastic_round=True, stochastic_zero=False)
         
         # calcula o gradiente dos pesos. self.inputs é a entrada dessa camada na etapa de forward prop. Ela é quantizada.             

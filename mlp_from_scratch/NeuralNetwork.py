@@ -6,7 +6,7 @@ from quantizer import quantize, quantize_po2
 import os
 from tensorflow import keras
 from keras import layers
-
+from qkeras import QActivation
 
 
 class NeuralNetwork:
@@ -221,6 +221,7 @@ class QNeuralNetworkWithScale:
 
         # loss function grad output scale
         self.grad_output_scale = tf.constant(1., tf.float32)
+        self.input_scale = tf.constant(1., tf.float32)
 
         self.layers = []
         self.layers.append(QFullyConnectedLayerWithScale(input_size, 256))
@@ -246,9 +247,11 @@ class QNeuralNetworkWithScale:
         # descobre a escala do dado de entrada
         cp_inputs = inputs
         xs = tf.reduce_max(tf.abs(cp_inputs))    
+        self.input_scale = 0.9 * self.input_scale + 0.1 * xs
+        xs = self.input_scale
         
         # escala entrada e atribui a variavel output que entrará no laço ### TODO: testar fazer média móvel de entradas, mas deve piorar ACC
-        output = cp_inputs / quantize_po2(xs)
+        output = cp_inputs / quantize_po2(self.input_scale)
 
         # quantiza a entrada...
         output = quantize(output, True)
@@ -501,7 +504,7 @@ class QNeuralNetworkWithScale:
                 self.layers.append(qfc)
 
 
-            if isinstance(l, keras.layers.ReLU):          
+            if isinstance(l, keras.layers.ReLU) or isinstance(l, QActivation):          
                 # print("instantiating relu")      
                 self.layers.append(QReLU())
 
@@ -763,7 +766,7 @@ class QLeNet:
                 self.layers.append(qfc)
 
 
-            if isinstance(l, keras.layers.ReLU):         
+            if isinstance(l, keras.layers.ReLU) or isinstance(l, QActivation):
                 # print("instanciating ReLU...", l.output_shape)       
                 self.layers.append(QReLU(training))
 
