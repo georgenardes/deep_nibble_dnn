@@ -674,7 +674,7 @@ class QLeNet:
         self.freeze_conv = False
 
 
-    def load_layers_from_model(self, lenet):
+    def load_layers_from_model(self, lenet, conv_only=False):
         
         # clear previously created layers
         self.layers.clear()
@@ -684,7 +684,9 @@ class QLeNet:
         for i, l in enumerate(lenet.layers):
             if isinstance(l, keras.layers.Dense): 
                 last_fc_layer_idx = i
-
+        
+        # variavel para setar todas camadas apos flatten como training = True
+        training = False
 
         for i, l in enumerate(lenet.layers):
             if isinstance(l, keras.layers.Conv2D):    
@@ -707,7 +709,7 @@ class QLeNet:
                 w_scale = np.max(np.abs(fpw))
                 
                 fpw_scaled = fpw / w_scale
-                qw = quantize(fpw_scaled, True, False)
+                qw = quantize(fpw_scaled, True, True)
                 
                 # atribui o peso quantizado
                 qfc.qw = qw
@@ -716,7 +718,11 @@ class QLeNet:
                 qb = quantize(fpb_scaled, True, False)
                 qfc.qb = qb
                 
+                # não sera treinado CONV
+                qfc.training = False
+
                 self.layers.append(qfc)
+
 
             if isinstance(l, keras.layers.MaxPool2D):    
                 # print("instanciating MaxPool2D...", l.output_shape)
@@ -726,6 +732,7 @@ class QLeNet:
             if isinstance(l, keras.layers.Flatten):    
                 # print("instanciating Flatten...", l.output_shape)
                 self.layers.append(CustomFlatten(l.input_shape[1:])) # without batch
+                training = True # treinar após flatten
 
             if isinstance(l, keras.layers.Dense):        
                 # print("instanciating Dense...", l.output_shape)
@@ -738,7 +745,7 @@ class QLeNet:
                 w_scale = np.max(np.abs(fpw))
                 
                 fpw_scaled = fpw / w_scale
-                qw = quantize(fpw_scaled, True, False)
+                qw = quantize(fpw_scaled, True, True)
                 
                 # atribui o peso quantizado
                 qfc.qw = qw
@@ -752,13 +759,16 @@ class QLeNet:
                 if i == last_fc_layer_idx:
                     qfc.is_output_layer = True
 
-
                 self.layers.append(qfc)
 
 
             if isinstance(l, keras.layers.ReLU):         
                 # print("instanciating ReLU...", l.output_shape)       
-                self.layers.append(QReLU())
+                self.layers.append(QReLU(training))
+
+        for l in self.layers:
+            if isinstance(l, QReLU): 
+                print(l.training)
 
 
     def restart_fc_layers(self):
@@ -824,7 +834,7 @@ class QLeNet:
 
         for i, layer in enumerate(reversed(self.layers)):
             # print(f"processing back prop of layer {len(self.layers) -i}... {type(layer)} ...")
-            if isinstance(layer, QConvLayer) and not self.freeze_conv:                
+            if isinstance(layer, QConvLayer):                
                 grad_output = layer.qbackward(grad_output, grad_output_scale, learning_rate)
                 grad_output_scale = layer.grad_output_scale
             elif isinstance(layer, QFullyConnectedLayerWithScale):
@@ -833,7 +843,10 @@ class QLeNet:
             elif isinstance(layer, QReLU):
                 grad_output = layer.backward(grad_output, learning_rate)
             elif isinstance(layer, CustomFlatten):                
-                grad_output = layer.backward(grad_output, learning_rate)
+                if not self.freeze_conv: # interrompe backprop apos flatten
+                    grad_output = layer.backward(grad_output, learning_rate)
+                else:
+                    return 0
             elif isinstance(layer, CustomMaxPool):
                 grad_output = layer.backward(grad_output, learning_rate)
             else:
