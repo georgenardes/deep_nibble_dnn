@@ -35,7 +35,7 @@ class QReLU(ActivationLayer):
         return out
 
     def backward(self, grad_output, learning_rate):        
-        return grad_output * tf.where(self.inputs > 0, 1., 0.) ### TODO: testar ZERO ESTOCÁSTICO AQUI....
+        return grad_output * tf.where(self.inputs > 0, 1., 0.) ### testado ZERO ESTOCÁSTICO mas n influenciou no CIFAR10
 
 
 class Sigmoid(ActivationLayer):

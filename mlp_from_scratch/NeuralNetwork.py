@@ -783,7 +783,7 @@ class QLeNet:
         xs = tf.reduce_max(tf.abs(x))
         self.input_scale = self.input_scale * 0.9 + 0.1 * xs
         self.is_hist.append(self.input_scale)
-
+        xs = self.input_scale
         # escala entrada e atribui a variavel output que entrará no laço
         output = x / quantize_po2(self.input_scale)
 

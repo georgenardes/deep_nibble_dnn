@@ -182,7 +182,7 @@ class QFullyConnectedLayerWithScale:
         self.output = tf.clip_by_value(self.output, -512, 512)
 
         # descobre escala da saída com base em uma média
-        self.output_scale = 0.99 * self.output_scale + 0.01 * tf.reduce_max(tf.abs(self.output))
+        self.output_scale = 0.99 * self.output_scale + 0.01 * tf.reduce_max(self.output) # removido abs pq depois vem RELU
         qos = quantize_po2(self.output_scale)
         
         self.os_hist.append(qos)

@@ -102,7 +102,7 @@ def VGG_16(x, num_classes=10, **kwargs):
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.Conv2D(256, (3, 3), padding='same', kernel_initializer="glorot_normal")(x)
     x = tf.keras.layers.ReLU()(x)
-    x = tf.keras.layers.Conv2D(256, (3, 3), padding='same', kernel_initializer="glorot_normal")(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), padding='same', kernel_initializer="glorot_normal")(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPooling2D((2, 2), strides=(2, 2))(x)
     
