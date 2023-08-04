@@ -7,6 +7,7 @@ import os
 from tensorflow import keras
 from keras import layers
 from qkeras import QActivation
+from qkeras import quantizers
 
 
 class NeuralNetwork:
@@ -767,9 +768,11 @@ class QLeNet:
 
 
             if isinstance(l, keras.layers.ReLU) or isinstance(l, QActivation):
-                # print("instanciating ReLU...", l.output_shape)       
-                self.layers.append(QReLU(training))
-
+                if isinstance(l, QActivation):
+                    if isinstance(l.quantizer, quantizers.quantized_relu_po2):                
+                        self.layers.append(QReLU(training))
+                else:
+                    self.layers.append(QReLU(training))
 
     def restart_fc_layers(self):
         for l in self.layers:
