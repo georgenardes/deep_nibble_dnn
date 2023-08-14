@@ -646,7 +646,7 @@ class LeNet:
 
 
 class QLeNet:
-    """ vanilla LeNet NN """
+    """ Quantized LeNet-like NN """
     def __init__(self, input_shape, output_size, batch_size):
         self.batch_size = batch_size
         self.input_shape = input_shape
